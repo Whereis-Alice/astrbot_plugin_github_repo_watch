@@ -303,7 +303,7 @@ class GitHubRepoWatchPlugin(Star):
                 "本次检查已完成，但存在异常：\n" + "\n".join(result["errors"])
             )
             return
-        yield event.plain_result("检查已执行，详情请查看后台日志。")
+        return
 
     @filter.command("ghwatchtest")
     async def ghwatchtest(self, event: AstrMessageEvent):

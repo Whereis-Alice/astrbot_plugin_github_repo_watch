@@ -36,7 +36,7 @@ python -m pip install -r requirements.txt
 /ghwatchsub Whereis-Alice/astrbot_plugin_github_repo_watch
 ```
 
-这样当前会话就会开始接收这个仓库的更新。
+这样当前会话就会开始接收这个仓库的更新，并自动补进默认推送会话列表。
 
 ## 配置说明
 
@@ -54,6 +54,8 @@ python -m pip install -r requirements.txt
 ```text
 default:GroupMessage:1091576468
 ```
+
+使用 `/ghwatchsub owner/repo` 时，插件也会自动把当前会话的 `UMO` 补进这个默认推送列表，方便直接在聊天里完成订阅。
 
 ### 仓库列表
 
@@ -85,10 +87,10 @@ default:GroupMessage:1091576468
   向当前会话发送测试通知
 
 - `/ghwatchcheck`
-  立即执行一次检查。成功时只提示“已执行”，详细摘要写后台日志
+  立即执行一次检查。成功时不回会话消息；如有异常会返回错误，详细日志写后台
 
 - `/ghwatchsub owner/repo`
-  将当前会话订阅到一个仓库
+  将当前会话订阅到一个仓库，并自动补进默认推送会话列表
 
 - `/ghwatchunsub owner/repo`
   取消当前会话对一个仓库的订阅
