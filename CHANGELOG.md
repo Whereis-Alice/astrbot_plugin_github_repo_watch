@@ -7,6 +7,7 @@
 - 重新整理测试打包内容，避免携带本地 `__pycache__`
 - 修复 `/ghwatchsub` 动态写入配置时缺少 `template_list` 模板标记，导致配置面板不同步的问题
 - 修复 `/ghwatchsubs` 未统计默认推送会话继承仓库的问题
+- 新增启动时自动迁移旧脏配置，自动修复旧版 `default_targets` / `repositories` 的格式和订阅路由字段
 
 ## v0.2.0
 

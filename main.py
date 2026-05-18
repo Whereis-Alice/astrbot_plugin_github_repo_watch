@@ -237,6 +237,7 @@ class GitHubRepoWatchPlugin(Star):
 
     async def initialize(self) -> None:
         self._data_dir.mkdir(parents=True, exist_ok=True)
+        self._migrate_legacy_config_if_needed()
         await self._load_state()
         await self._recreate_client()
         if self._bool("enabled", True):
@@ -946,6 +947,149 @@ class GitHubRepoWatchPlugin(Star):
             )
         self._debug("loaded targets count=%s umos=%s", len(results), [item.umo for item in results])
         return results
+
+    def _migrate_legacy_config_if_needed(self) -> None:
+        changed = False
+
+        migrated_targets = self._migrate_default_targets_config(self.config.get("default_targets"))
+        if migrated_targets is not None:
+            self.config["default_targets"] = migrated_targets
+            changed = True
+
+        migrated_repositories = self._migrate_repositories_config(self.config.get("repositories"))
+        if migrated_repositories is not None:
+            self.config["repositories"] = migrated_repositories
+            changed = True
+
+        if changed:
+            self.config.save_config()
+            self._debug("legacy config migrated and saved")
+
+    def _migrate_default_targets_config(self, raw_targets: Any) -> list[dict[str, Any]] | None:
+        if raw_targets is None:
+            return None
+
+        changed = False
+        migrated: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for item in raw_targets:
+            normalized_item, item_changed = self._normalize_target_config_item(item)
+            if item_changed:
+                changed = True
+            if not normalized_item:
+                if item is not None:
+                    changed = True
+                continue
+            umo = normalized_item["umo"]
+            if umo in seen:
+                changed = True
+                continue
+            seen.add(umo)
+            migrated.append(normalized_item)
+
+        if not changed and isinstance(raw_targets, list) and len(migrated) == len(raw_targets):
+            return None
+        return migrated
+
+    def _migrate_repositories_config(self, raw_repositories: Any) -> list[dict[str, Any]] | None:
+        if raw_repositories is None:
+            return None
+
+        changed = False
+        migrated: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for item in raw_repositories:
+            normalized_item, item_changed = self._normalize_repository_config_item(item)
+            if item_changed:
+                changed = True
+            if not normalized_item:
+                if item is not None:
+                    changed = True
+                continue
+            repo_name = normalized_item["name"]
+            if repo_name in seen:
+                changed = True
+                continue
+            seen.add(repo_name)
+            migrated.append(normalized_item)
+
+        if not changed and isinstance(raw_repositories, list) and len(migrated) == len(raw_repositories):
+            return None
+        return migrated
+
+    def _normalize_target_config_item(self, item: Any) -> tuple[dict[str, Any] | None, bool]:
+        if isinstance(item, str):
+            umo = self._normalize_umo(item)
+            if not umo:
+                return None, True
+            return {
+                "__template_key": "target",
+                "umo": umo,
+                "enabled": True,
+            }, True
+
+        if not isinstance(item, dict):
+            return None, item is not None
+
+        umo = self._build_umo_from_target(item)
+        enabled = bool(item.get("enabled", True))
+        if not umo:
+            return None, True
+
+        normalized = {
+            "__template_key": "target",
+            "umo": umo,
+            "enabled": enabled,
+        }
+        if item.get("mention_all") is True:
+            normalized["mention_all"] = True
+        prefix = str(item.get("prefix") or "").strip()
+        if prefix:
+            normalized["prefix"] = prefix
+
+        changed = item != normalized
+        return normalized, changed
+
+    def _normalize_repository_config_item(self, item: Any) -> tuple[dict[str, Any] | None, bool]:
+        if not isinstance(item, dict):
+            return None, item is not None
+
+        repo_name = self._normalize_repo_name(item.get("name"))
+        if not repo_name:
+            return None, True
+
+        target_umos = self._extract_target_umos(item)
+        target_text = "\n".join(target_umos)
+        changelog_paths = self._split_lines(item.get("changelog_paths")) or DEFAULT_CHANGELOG_CANDIDATES.copy()
+        normalized = {
+            "__template_key": "repo",
+            "name": repo_name,
+            "enabled": bool(item.get("enabled", True)),
+            "branch": str(item.get("branch") or "").strip(),
+            "watch_commits": bool(item.get("watch_commits", True)),
+            "watch_releases": bool(item.get("watch_releases", True)),
+            "include_commit_diff_url": bool(item.get("include_commit_diff_url", True)),
+            "changelog_enabled": bool(item.get("changelog_enabled", True)),
+            "changelog_paths": "\n".join(changelog_paths),
+            "target_umos": target_text,
+            "silent_on_empty_target": bool(item.get("silent_on_empty_target", True)),
+        }
+
+        changed = False
+        if item.get("__template_key") != "repo":
+            changed = True
+        if self._normalize_repo_name(item.get("name")) != repo_name:
+            changed = True
+        if self._split_lines(item.get("target_umos")) != target_umos:
+            changed = True
+        if self._split_lines(item.get("changelog_paths")) != changelog_paths:
+            changed = True
+        if item.get("target_names") or item.get("target"):
+            changed = True
+        if item != normalized:
+            changed = True
+
+        return normalized, changed
 
     def _load_repo_configs(self) -> list[RepoConfig]:
         raw_repos = self.config.get("repositories") or []
