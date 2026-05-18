@@ -1037,7 +1037,13 @@ class GitHubRepoWatchPlugin(Star):
                 return False
             if isinstance(item, str) and self._normalize_umo(item) == normalized:
                 return False
-        targets.append({"umo": normalized, "enabled": True})
+        targets.append(
+            {
+                "__template_key": "target",
+                "umo": normalized,
+                "enabled": True,
+            }
+        )
         self._debug("added target umo=%s", normalized)
         return True
 
@@ -1055,6 +1061,7 @@ class GitHubRepoWatchPlugin(Star):
                 break
         if repo_item is None:
             repo_item = {
+                "__template_key": "repo",
                 "name": normalized_repo,
                 "enabled": True,
                 "watch_commits": True,
@@ -1062,16 +1069,18 @@ class GitHubRepoWatchPlugin(Star):
                 "include_commit_diff_url": True,
                 "changelog_enabled": True,
                 "changelog_paths": "\n".join(DEFAULT_CHANGELOG_CANDIDATES),
-                "target_umos": [],
+                "target_umos": "",
                 "silent_on_empty_target": True,
             }
             repositories.append(repo_item)
+        else:
+            repo_item.setdefault("__template_key", "repo")
 
         target_umos = self._split_lines(repo_item.get("target_umos"))
         if normalized_umo in [self._normalize_umo(v) for v in target_umos]:
             return False
         target_umos.append(normalized_umo)
-        repo_item["target_umos"] = target_umos
+        repo_item["target_umos"] = "\n".join(target_umos)
         repo_item["enabled"] = True
         self._debug("subscribed repo=%s umo=%s", normalized_repo, normalized_umo)
         return True
@@ -1092,16 +1101,25 @@ class GitHubRepoWatchPlugin(Star):
             filtered = [v for v in target_umos if self._normalize_umo(v) != normalized_umo]
             if len(filtered) == len(target_umos):
                 return False
-            item["target_umos"] = filtered
+            item.setdefault("__template_key", "repo")
+            item["target_umos"] = "\n".join(filtered)
             self._debug("unsubscribed repo=%s umo=%s", normalized_repo, normalized_umo)
             return True
         return False
 
     def _repos_for_umo(self, umo: str) -> list[str]:
         normalized_umo = self._normalize_umo(umo)
+        default_target_umos = {
+            self._normalize_umo(target.umo) for target in self._load_targets() if target.enabled
+        }
         names: list[str] = []
         for repo in self._load_repo_configs():
-            if normalized_umo in [self._normalize_umo(v) for v in repo.target_umos]:
+            repo_target_umos = [self._normalize_umo(v) for v in repo.target_umos]
+            if repo_target_umos:
+                if normalized_umo in repo_target_umos:
+                    names.append(repo.name)
+                continue
+            if normalized_umo in default_target_umos:
                 names.append(repo.name)
         return names
 
