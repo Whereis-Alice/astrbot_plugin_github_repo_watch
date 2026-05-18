@@ -331,6 +331,10 @@ class GitHubRepoWatchPlugin(Star):
             yield event.plain_result("用法: /ghwatchsub owner/repo")
             return
 
+        if self._is_repo_subscribed_for_umo(repo_name, event.unified_msg_origin):
+            yield event.plain_result(f"当前会话已经订阅过仓库 {repo_name}。")
+            return
+
         changed = self._ensure_target_exists(event.unified_msg_origin)
         repo_changed = self._ensure_repo_subscription(repo_name, event.unified_msg_origin)
         if changed or repo_changed:
@@ -1266,6 +1270,14 @@ class GitHubRepoWatchPlugin(Star):
             if normalized_umo in default_target_umos:
                 names.append(repo.name)
         return names
+
+    def _is_repo_subscribed_for_umo(self, repo_name: str, umo: str) -> bool:
+        normalized_repo = self._normalize_repo_name(repo_name)
+        normalized_umo = self._normalize_umo(umo)
+        if not normalized_repo or not normalized_umo:
+            return False
+
+        return normalized_repo in self._repos_for_umo(normalized_umo)
 
     async def _load_state(self) -> None:
         async with self._state_lock:
