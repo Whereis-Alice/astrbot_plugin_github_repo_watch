@@ -2,7 +2,7 @@ name: astrbot_plugin_github_repo_watch
 display_name: GitHub Repo Watch
 desc: 监控 GitHub 仓库的提交、Push、Release 和 CHANGELOG 增量，并推送到指定 QQ 会话。
 short_desc: GitHub 仓库事件监控与 QQ 通知插件。
-version: v0.2.1
+version: v0.2.2
 author: Huli3
 repo: https://github.com/Whereis-Alice/astrbot_plugin_github_repo_watch
 astrbot_version: ">=4.16,<5"
