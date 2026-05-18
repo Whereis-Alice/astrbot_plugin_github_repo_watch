@@ -1,0 +1,163 @@
+{
+  "enabled": {
+    "type": "bool",
+    "description": "启用 GitHub 仓库监控",
+    "default": true,
+    "hint": "关闭后不会启动后台轮询任务。"
+  },
+  "github_token": {
+    "type": "string",
+    "description": "GitHub Token",
+    "default": "",
+    "hint": "建议填写具备读取仓库信息权限的 Token，可提升 API 额度并访问私有仓库。"
+  },
+  "github_api_base_url": {
+    "type": "string",
+    "description": "GitHub API 基础地址",
+    "default": "https://api.github.com",
+    "hint": "GitHub Enterprise Server 可改成对应 API 地址。"
+  },
+  "poll_interval_seconds": {
+    "type": "int",
+    "description": "轮询间隔（秒）",
+    "default": 300,
+    "hint": "建议不要低于 60 秒。"
+  },
+  "request_timeout_seconds": {
+    "type": "int",
+    "description": "GitHub API 请求超时（秒）",
+    "default": 20
+  },
+  "max_commits_per_check": {
+    "type": "int",
+    "description": "每次检查最多读取的最新提交数",
+    "default": 10
+  },
+  "max_release_body_length": {
+    "type": "int",
+    "description": "Release 正文最大长度",
+    "default": 1200
+  },
+  "max_changelog_length": {
+    "type": "int",
+    "description": "CHANGELOG 增量最大长度",
+    "default": 1500
+  },
+  "send_changelog_for_commits": {
+    "type": "bool",
+    "description": "提交通知附带 CHANGELOG 增量",
+    "default": true
+  },
+  "send_changelog_for_releases": {
+    "type": "bool",
+    "description": "Release 通知附带 CHANGELOG 增量",
+    "default": true
+  },
+  "skip_initial_history": {
+    "type": "bool",
+    "description": "首次启动时跳过历史补发",
+    "default": true,
+    "hint": "开启后首次只记录当前状态，不推送旧提交和旧发布。"
+  },
+  "default_targets": {
+    "type": "template_list",
+    "description": "默认推送会话",
+    "default": [],
+    "templates": {
+      "target": {
+        "name": "推送会话",
+        "items": {
+          "umo": {
+            "type": "string",
+            "description": "统一消息来源 UMO",
+            "default": "",
+            "hint": "例如 default:GroupMessage:1091576468。"
+          },
+          "enabled": {
+            "type": "bool",
+            "description": "启用该会话",
+            "default": true
+          }
+        }
+      }
+    }
+  },
+  "repositories": {
+    "type": "template_list",
+    "description": "监控仓库列表",
+    "default": [],
+    "templates": {
+      "repo": {
+        "name": "仓库",
+        "items": {
+          "name": {
+            "type": "string",
+            "description": "仓库全名",
+            "default": "",
+            "hint": "格式 owner/repo，例如 Whereis-Alice/astrbot_plugin_github_repo_watch。"
+          },
+          "enabled": {
+            "type": "bool",
+            "description": "启用该仓库",
+            "default": true
+          },
+          "branch": {
+            "type": "string",
+            "description": "监控分支",
+            "default": "",
+            "hint": "留空表示使用仓库默认分支。"
+          },
+          "watch_commits": {
+            "type": "bool",
+            "description": "监控 Commit/Push",
+            "default": true
+          },
+          "watch_releases": {
+            "type": "bool",
+            "description": "监控 Release",
+            "default": true
+          },
+          "include_commit_diff_url": {
+            "type": "bool",
+            "description": "提交通知附带 compare 链接",
+            "default": true
+          },
+          "changelog_enabled": {
+            "type": "bool",
+            "description": "启用 CHANGELOG 检测",
+            "default": true
+          },
+          "changelog_paths": {
+            "type": "text",
+            "description": "CHANGELOG 候选路径",
+            "default": "CHANGELOG.md\nCHANGELOG\nchangelog.md\ndocs/CHANGELOG.md\nRELEASE_NOTES.md",
+            "hint": "每行一个相对路径。"
+          },
+          "target_umos": {
+            "type": "text",
+            "description": "该仓库专属推送会话 UMO",
+            "default": "",
+            "hint": "每行一个 UMO。为空则使用默认推送会话。"
+          },
+          "silent_on_empty_target": {
+            "type": "bool",
+            "description": "无推送会话时静默跳过",
+            "default": true
+          }
+        }
+      }
+    }
+  },
+  "debug_mode": {
+    "type": "bool",
+    "description": "调试模式",
+    "default": false,
+    "hint": "开启后会在 AstrBot 日志中输出详细的 GitHub 请求、仓库状态、推送目标和异常上下文。"
+  },
+  "debug_logging_enabled": {
+    "type": "bool",
+    "description": "兼容旧版调试日志开关",
+    "default": false,
+    "hint": "旧字段，保留兼容。新部署请优先使用 debug_mode。"
+  }
+}
